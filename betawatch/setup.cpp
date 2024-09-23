@@ -3,6 +3,7 @@
 #include "psapi.h"
 #include "MinHook.h"
 #include "hooks.h"
+#include "HookUtils.h"
 
 void SetupConsole() {
     if (!AllocConsole()) {
@@ -11,7 +12,7 @@ void SetupConsole() {
     }
 
     FILE* f;
-    freopen_s(&f, "CONOUT$", "w", stdout);
+    freopen_s(&f, "CONOUT$", "w", stdout); //Soup: What is this?
 
 
     std::cout << "betawatch hooker loaded\n";
@@ -39,7 +40,7 @@ DWORD WINAPI MainThread(LPVOID lpParam) {
 
     MH_STATUS status = MH_Initialize();
     if (status != MH_OK) {
-        printf("failed to initialize minhook: %d\n", status);
+        printf("betwatch: failed to initialize minhook: %d\n", status);
     }
     printf("minhook initialized\n");
 
@@ -48,8 +49,7 @@ DWORD WINAPI MainThread(LPVOID lpParam) {
     __int64 gameBase = (__int64)gameModule;
 
     printf("gameBase: %llx\n", gameBase);
-
-
+    printf("tls_callback0: %llx\n", Utils::find_tls0(gameBase));
 
     // get size of the game module
     MODULEINFO modInfo;
@@ -58,16 +58,14 @@ DWORD WINAPI MainThread(LPVOID lpParam) {
 
     printf("gameSize: %llx\n", gameSize);
     printf("decrypting pages\n");
-
     // decrypt pages
     /* call it from 0x1000 to game end (and increase by 0x100 every call) */
     int amt = 0;
     for (size_t i = 0x1000; i < gameSize; i += 0x100) {
-		decryptPage(i, gameBase);
+        decryptPage(i, gameBase);
         amt += 1;
-	}
+    }
     printf("decrypted %d pages\n", amt);
-
     // initialize hooks
     InitHooks(gameBase);
 
